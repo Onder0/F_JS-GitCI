@@ -1,3 +1,3 @@
-function getUNIXTime() {
-  return new Math.floor(Date().getTime() / 1000);
+export function getUNIXTime() {
+  return Math.floor(new Date().getTime() / 1000);
 }
