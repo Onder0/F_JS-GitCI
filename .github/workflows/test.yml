@@ -3,11 +3,10 @@ name: Tests
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: ['main']
+    branches: [ "main" ]
   pull_request:
-    branches: ['main']
+    branches: [ "main" ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -16,34 +15,53 @@ on:
 jobs:
   # This workflow contains a single job called "build"
   build:
+    timeout-minutes: 2
     strategy:
       matrix:
-        node-versions: [16, 18, 20]
+        # les différents OS sur lesquels faire tourner notre action
         os: [ubuntu-latest, ubuntu-20.04, windows-2022]
-
-    runs-on: ${{ matrix.os }}
-
+        version: [20, 18, 16]
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - uses: actions/checkout@v3
       # installe node dans la machine
       - uses: actions/setup-node@v4
         with:
-          # installe la version x de node
-          node-version: ${{ matrix.node-versions }}
+          # installe la version 20 de nodeJS
+          node-version: ${{ matrix.version }}
       - uses: pnpm/action-setup@v3
         with:
           version: 8
-      - run: node -v
-      - run: pnpm -v
-
+      # Stocke le chemin du store de PNPM en variable d'environnement
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          # Chemin de ce qui est caché
+          path: ${{ env.STORE_PATH }}
+          # Clé du cache, si celle-ci change le cache est invalidé
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
       - run: pnpm install
       - run: pnpm lint
       - run: pnpm test
-
   deploy:
     runs-on: ubuntu-latest
+    # Vérifie qu'on est sur la branche main. Donc pas via une PR.
+    if: github.ref == 'refs/heads/main'
     needs: build
     steps:
       - uses: actions/checkout@v3
-      - run: echo 'DEPLOY'
+      - uses: actions/setup-node@v4
+        with:
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
