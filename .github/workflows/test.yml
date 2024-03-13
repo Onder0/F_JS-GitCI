@@ -19,11 +19,9 @@ jobs:
     strategy:
       matrix:
         node-versions: [16, 18, 20]
-
-        # les différents OS sur lesquelles faire tourner notre action
-        # os: [ubuntu-latest, ubuntu-20.04, windows-2022]
-    # runs-on: ${{ matrix.os }}
-    runs-on: ubuntu-latest
+        os: [ubuntu-latest, ubuntu-20.04, windows-2022]
+        
+    runs-on: ubuntu-latest # ${{ matrix.os }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
